@@ -90,13 +90,3 @@ Data-poisoning-on-regression/
     ├── casp.csv
     └── warfarin.csv
 ```
-
-## Summary
-
-To reproduce the experiments:
-
-1. Clone this repository.
-2. Download the datasets from the Google Drive link.
-3. Place the downloaded data files in the same folder as `Full_experiments.ipynb`.
-4. Open the notebook.
-5. Run all cells in order.
