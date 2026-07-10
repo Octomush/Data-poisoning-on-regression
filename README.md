@@ -1,24 +1,26 @@
 # Data Poisoning on Regression
 
-This repository contains the full experiment notebook for the data poisoning on regression project.
+Research code for a thesis project on **feature‑perturbation data‑poisoning attacks against strongly‑convex
+regression** — the "nudge, not inject" construction, its curvature‑driven attack surface (TR1/TR2/TR3/
+TR3‑relin), the detectability ladder (budget · inlier · MSE caps), and the accompanying detection analysis.
 
-The main notebook is:
+The repository has two parts:
 
-```text
-Full_experiments.ipynb
-```
+- **`Full_experiments.ipynb`** — the full experiment notebook (all attacks, sweeps, proofs‑in‑code, and figures).
+- **an interactive explorer** — a small local dashboard and standalone pages that call the same functions and
+  render their figures live (see [Interactive explorer](#interactive-explorer)).
 
-The data files are not stored directly in this GitHub repository because they are too large for convenient GitHub upload. Instead, the datasets can be downloaded separately from Google Drive.
+---
 
 ## Download the data
 
-Download the required data files from the following Google Drive folder:
+The datasets are **not** stored in this repository (too large for GitHub upload). Download them from
+the Google Drive folder below and place **all** files in the **same directory** as `Full_experiments.ipynb`:
 
-https://drive.google.com/drive/folders/11sUVKhZ0Lvuie7VSViaR1HzkEwyf1THF?usp=sharing
+**https://drive.google.com/drive/folders/11sUVKhZ0Lvuie7VSViaR1HzkEwyf1THF?usp=sharing**
 
-After downloading, place all of the data files in the **same folder** as `Full_experiments.ipynb`.
-
-The final repository folder should look like this:
+Keep the file names unchanged — the notebook expects exactly these names. The repository should end up looking
+like this:
 
 ```text
 Data-poisoning-on-regression/
@@ -37,56 +39,74 @@ Data-poisoning-on-regression/
 └── warfarin.xls
 ```
 
-Please keep the dataset file names unchanged, since the notebook expects the files to be available with these names.
+> **File paths:** the notebook assumes every dataset sits in the **same folder** as the notebook — directly,
+> not inside a subfolder. Keep the notebook and the CSVs side by side.
+
+---
 
 ## Running the notebook
 
-First, clone this repository:
-
 ```bash
+# 1. clone
 git clone https://github.com/[YOUR_USERNAME]/Data-poisoning-on-regression.git
 cd Data-poisoning-on-regression
+
+# 2. download the data (link above) into this same directory
+
+# 3. install dependencies
+pip install numpy scipy scikit-learn matplotlib pandas
+
+# 4. open the notebook
+jupyter notebook Full_experiments.ipynb      # or:  jupyter lab Full_experiments.ipynb
 ```
 
-Then download the data files from the Google Drive folder linked above and move them into this same directory.
+Then run the cells in order.
 
-Open the notebook using Jupyter Notebook:
+---
+
+## Interactive explorer
+
+The `dashboard/` folder is a self‑contained tool that calls the project's own functions and renders their
+figures for whatever dataset / objective / regime / budget you choose — no notebook required.
 
 ```bash
-jupyter notebook Full_experiments.ipynb
+cd dashboard
+pip install -r requirements.txt
+python3 server.py            # → http://localhost:8000
 ```
 
-or using JupyterLab:
+The first render of each setting runs the real solver (seconds on small datasets); results are cached. Panels
+include the regression overlay, the **force‑balance mechanism** view, the functional budget sweep, m–ε sweep,
+the interactive 3‑D feasible attack space, ceiling approach, budget redistribution, residual‑inward, and the
+influence × η_max attackability heatmap.
 
-```bash
-jupyter lab Full_experiments.ipynb
-```
+**Animations** live in .gif forms — the force‑balance rollout, the ceiling approach
+(TR3‑relin vs bilevel), poisoning across the three spaces, the boundary walk, the relinearization step, and the
+curvature‑vs‑λ flattening. Regeneration code is: 
 
-Then run the notebook cells in order.
+# --- ceiling approach (TR3-relin vs bilevel/PGA) ---
+python3 ceiling3d_animation.py casp       linear_topq 8 inlier relin     # ceiling3d_casp_linear_topq_relin.gif
+python3 ceiling3d_animation.py casp       linear_topq 8 inlier bilevel   # ceiling3d_casp_linear_topq_bilevel.gif
+python3 ceiling3d_animation.py realestate linear_topq 8 inlier relin     # ceiling3d_realestate_linear_topq_relin.gif
 
-## Important note about file paths
+# --- poisoning across the three spaces (feature · (ŷ,r) · residual) ---
+python3 poison_spaces_animation.py california linear_topq 8 TR3          # poison_spaces_california_linear_topq_TR3.gif
 
-The notebook assumes that all datasets are located in the same directory as `Full_experiments.ipynb`.
+# --- per-refit relinearization curvature ---
+python3 relin_curvature_animation.py casp linear_topq 8 4.0              # relin_curvature_casp_linear_topq.gif
 
-That means the folder should contain both the notebook and the data files directly, rather than putting the datasets inside a separate subfolder.
+# --- boundary walk + residual inward across ε ---
+python3 boundary_epsilon_animation.py realestate linear_topq 8 inlier    # boundary_eps_realestate_linear_topq.gif
 
-For example, this is correct:
+# --- attack-surface curvature flattening as ridge λ grows ---
+python3 curvature_animation.py concrete linear_topq 8                    # curvature_lambda_concrete_linear_topq.gif
 
-```text
-Data-poisoning-on-regression/
-├── Full_experiments.ipynb
-├── concrete.csv
-├── casp.csv
-└── warfarin.csv
-```
+> The datasets used by the explorer download automatically via scikit‑learn / OpenML, except `house`,
+> `warfarin`, and `loan`, which read local CSVs (optional).
 
-This may require changing file paths in the notebook:
+---
 
-```text
-Data-poisoning-on-regression/
-├── Full_experiments.ipynb
-└── data/
-    ├── concrete.csv
-    ├── casp.csv
-    └── warfarin.csv
-```
+## Requirements
+
+Python 3.9+, with `numpy`, `scipy`, `scikit-learn`, `matplotlib`, and `pandas`. The dashboard server uses only
+the Python standard library (no web framework).
