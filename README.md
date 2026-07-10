@@ -64,49 +64,58 @@ Then run the cells in order.
 
 ---
 
-## Interactive explorer
+# Interactive Explorer
 
-The `dashboard/` folder is a self‑contained tool that calls the project's own functions and renders their
-figures for whatever dataset / objective / regime / budget you choose — no notebook required.
+A small, self‑contained toolkit for exploring **feature‑perturbation data‑poisoning attacks on strongly‑convex regression**. It ships three things:
+
+1. a **local web dashboard** (`server.py` + `index.html`) that calls the research code's own functions and renders their figures live for whatever dataset / objective / regime / budget you pick;
+3. **animation & analysis scripts** that reproduce the figures in `animations/`.
+
+Everything is built on the same core: `webcore.py` (the poisoning math and dataset loaders) and `dashboard_extras.py` (a few dashboard‑only figures built strictly on `webcore` quantities).
+
+## Quick start — the live dashboard
 
 ```bash
-cd dashboard
 pip install -r requirements.txt
 python3 server.py            # → http://localhost:8000
 ```
 
-The first render of each setting runs the real solver (seconds on small datasets); results are cached. Panels
-include the regression overlay, the **force‑balance mechanism** view, the functional budget sweep, m–ε sweep,
-the interactive 3‑D feasible attack space, ceiling approach, budget redistribution, residual‑inward, and the
-influence × η_max attackability heatmap.
+The first render of each setting runs the real solver (seconds on small datasets, up to ~a minute on large ones); the figure is then cached in `fig_cache/`. Default dataset is **casp**. Controls map directly to function arguments: dataset, objective (`linear_topq`, `feature_seg`, `feature_level`, `level`, `mse`), poisoned‑point count *m*, regime (budget / inlier / both / MSE), and budget ε.
 
-**Animations** live in .gif forms — the force‑balance rollout, the ceiling approach
-(TR3‑relin vs bilevel), poisoning across the three spaces, the boundary walk, the relinearization step, and the
-curvature‑vs‑λ flattening. Regeneration code is: 
+## Animations
 
-# --- ceiling approach (TR3-relin vs bilevel/PGA) ---
-python3 ceiling3d_animation.py casp       linear_topq 8 inlier relin     # ceiling3d_casp_linear_topq_relin.gif
-python3 ceiling3d_animation.py casp       linear_topq 8 inlier bilevel   # ceiling3d_casp_linear_topq_bilevel.gif
-python3 ceiling3d_animation.py realestate linear_topq 8 inlier relin     # ceiling3d_realestate_linear_topq_relin.gif
+Pre‑rendered in `animations/`:
 
-# --- poisoning across the three spaces (feature · (ŷ,r) · residual) ---
-python3 poison_spaces_animation.py california linear_topq 8 TR3          # poison_spaces_california_linear_topq_TR3.gif
+- `force_balance_animation.gif` — attack rolled out under the drive until the wall reactions balance it (budget‑only → GREEN, caps → RED), with the net‑δ vector
+- `ceiling3d_casp_linear_topq.gif` — approach to the inlier ceiling, TR3‑relin
+- `ceiling3d_casp_linear_topq_bilevel.gif` — same, bilevel / PGA (for comparison)
+- `ceiling3d_realestate_linear_topq.gif` — ceiling approach on the balanced/harder realestate geometry
+- `relin_curvature_casp_linear_topq.gif` — local curvature re‑estimated each refit (relinearization)
+- `poison_spaces_california_linear_topq_TR3.gif` — poisoning across three spaces (feature · (ŷ,r) · residual) as ε grows
+- `boundary_eps_realestate_linear_topq.gif` — boundary walk + residual‑inward across ε
+- `curvature_lambda_concrete_linear_topq.gif` — attack‑surface curvature flattening as the ridge λ grows
 
-# --- per-refit relinearization curvature ---
-python3 relin_curvature_animation.py casp linear_topq 8 4.0              # relin_curvature_casp_linear_topq.gif
+### Regenerate the animations
 
-# --- boundary walk + residual inward across ε ---
-python3 boundary_epsilon_animation.py realestate linear_topq 8 inlier    # boundary_eps_realestate_linear_topq.gif
+Run from this folder (each writes its `.gif` here):
 
-# --- attack-surface curvature flattening as ridge λ grows ---
-python3 curvature_animation.py concrete linear_topq 8                    # curvature_lambda_concrete_linear_topq.gif
+```bash
+python3 force_balance_animation.py casp mse
+python3 ceiling3d_animation.py casp linear_topq 8 inlier relin
+python3 ceiling3d_animation.py casp linear_topq 8 inlier bilevel
+python3 ceiling3d_animation.py realestate linear_topq 8 inlier relin
+python3 relin_curvature_animation.py casp linear_topq 8 4.0
+python3 poison_spaces_animation.py california linear_topq 8 TR3
+python3 boundary_epsilon_animation.py realestate linear_topq 8 inlier
+python3 curvature_animation.py concrete linear_topq 8
+```
 
-> The datasets used by the explorer download automatically via scikit‑learn / OpenML, except `house`,
-> `warfarin`, and `loan`, which read local CSVs (optional).
+Argument pattern is `dataset kind m [caps|method|eps]`; swap in any dataset/objective for variants. 
 
----
+## Datasets
+
+Most datasets download automatically via scikit‑learn / OpenML (`realestate`, `california`, `communities`, `concrete`, `airfoil`, `casp`, `blog`). Three need a local CSV in `data/`: `house` → `house-processed.csv`, `warfarin` → `warfarin.csv`, `loan` → `loan_sample.csv` (optional).
 
 ## Requirements
 
-Python 3.9+, with `numpy`, `scipy`, `scikit-learn`, `matplotlib`, and `pandas`. The dashboard server uses only
-the Python standard library (no web framework).
+Python 3.9+, with `numpy`, `scipy`, `scikit-learn`, `matplotlib`, `pandas`. The server uses only the Python standard library.
