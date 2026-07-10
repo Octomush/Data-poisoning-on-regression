@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Poisoning &amp; Defence Explorer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Nunito+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.plot.ly/plotly-2.35.2.min.js" charset="utf-8"></script>
+<style>
+:root{--bg:#f4f1ea;--panel:#fffdf9;--ink:#403b34;--muted:#948d7f;--line:#e8e2d6;
+  --sage:#7fa591;--sage-soft:#eaf1ec;--clay:#c98a86;--charcoal:#5b564e;
+  --shadow:0 1px 2px rgba(90,80,60,.05),0 10px 28px rgba(120,105,80,.08);--radius:20px;}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ink);font-family:"Nunito Sans",system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+.hero{background:linear-gradient(140deg,#8fa98f 0%,#7f9d94 45%,#9a8f7e 100%);color:#fff;padding:26px 34px 22px}
+.hero h1{margin:0;font-family:Fraunces,Georgia,serif;font-weight:500;font-size:29px}
+.hero p{margin:7px 0 0;max-width:920px;color:#f4efe6;font-size:14px;line-height:1.55;opacity:.95}
+.wrap{max-width:1340px;margin:0 auto;padding:20px 20px 60px}
+.rail{position:sticky;top:10px;z-index:20;margin:16px 0 20px;background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:14px 20px;display:flex;flex-wrap:wrap;gap:20px;align-items:center}
+.knob{display:flex;flex-direction:column;gap:6px}
+.knob .lab{font-size:11px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--muted)}
+select{font:inherit;font-weight:700;color:var(--ink);background:#fff;border:1.5px solid var(--line);border-radius:12px;padding:9px 12px;cursor:pointer;min-width:110px}
+.seg{display:flex;gap:6px}
+.seg button{cursor:pointer;border:1.5px solid var(--line);background:#fff;color:var(--muted);border-radius:11px;padding:8px 13px;font-weight:700;font-size:12.5px}
+.seg button.on{border-color:var(--sage);background:var(--sage-soft);color:#4d7562}
+.srange{min-width:150px}
+.srange input{width:100%;accent-color:var(--sage)}
+.srange .v{font-weight:800;color:#4d7562;font-variant-numeric:tabular-nums}
+.spin{margin-left:auto;display:flex;align-items:center;gap:9px;color:var(--muted);font-size:12.5px;font-weight:600}
+.spin .ring{width:16px;height:16px;border:2.5px solid #e3ddd0;border-top-color:var(--sage);border-radius:50%;animation:spin .8s linear infinite;display:none}
+.spin.busy .ring{display:inline-block}
+@keyframes spin{to{transform:rotate(360deg)}}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:16px 18px 14px;min-width:0}
+.card.hero-card{grid-column:1 / -1;border:1.5px solid #e5cfc6;background:linear-gradient(180deg,#fffaf6,#fffdf9)}
+.card h3{margin:0 0 3px;font-size:15.5px;font-weight:600;font-family:Fraunces,Georgia,serif;color:var(--charcoal)}
+.card.hero-card h3{font-size:18px}
+.card .sub{margin:0 0 10px;font-size:12.2px;color:var(--muted);line-height:1.5}
+.mrow{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 10px;align-items:center}
+.mrow .mlab{font-size:11px;font-weight:700;color:var(--muted);margin-right:2px}
+.mrow button{cursor:pointer;border:1.4px solid var(--line);background:#fff;color:var(--muted);border-radius:9px;padding:4px 9px;font-weight:700;font-size:11.5px}
+.mrow button.on{border-color:var(--clay);background:#f7ecea;color:#b06a66}
+.figwrap{position:relative;width:100%;min-height:230px;border-radius:12px;overflow:hidden;background:#fbf9f4}
+.figwrap img{width:100%;display:block}
+.figwrap .load{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;color:var(--muted);font-size:12.5px;background:repeating-linear-gradient(45deg,#faf8f2,#faf8f2 12px,#f5f2ea 12px,#f5f2ea 24px)}
+.figwrap .load .ring{width:22px;height:22px;border:3px solid #e3ddd0;border-top-color:var(--sage);border-radius:50%;animation:spin .8s linear infinite}
+.figwrap.err .load{color:#b5524d;background:#fbeeed}
+.figwrap.ready .load{display:none}
+.summary{margin-top:10px;font-size:12px;border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.summary table{width:100%;border-collapse:collapse}
+.summary th,.summary td{padding:6px 10px;text-align:right;border-bottom:1px solid #f0ebe0}
+.summary th:first-child,.summary td:first-child{text-align:left}
+.summary th{background:#f7f4ec;color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.4px}
+.summary tr.best td{background:#eef4ef;font-weight:800;color:#3f6b55}
+.summary .cap,.fcap{padding:8px 10px;color:var(--muted);font-size:11.8px;line-height:1.5;background:#faf7f0;border:1px solid var(--line);border-radius:12px;margin-top:8px}
+.fcap b{color:var(--ink)}
+.foot{margin-top:24px;font-size:11.5px;color:var(--muted);text-align:center;line-height:1.6}
+@media(max-width:900px){.grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="hero">
+  <h1>Feature-Perturbation Poisoning &amp; Defence Explorer</h1>
+  <p>Every panel is a figure from the thesis's notebook functions, called live with your chosen
+     parameters. See how the regression changes, choose which methods to draw, adjust m and the budget,
+     rotate the feasible set, and read the empirical max-reachable / saturation values.</p>
+</div>
+<div class="wrap">
+  <div class="rail">
+    <div class="knob"><span class="lab">Dataset</span><select id="dataset"></select></div>
+    <div class="knob"><span class="lab">Objective</span><select id="objective"></select></div>
+    <div class="knob"><span class="lab">Poisoned points m</span><select id="mval"></select></div>
+    <div class="knob"><span class="lab">Regime</span>
+      <div class="seg" id="regime"><button data-r="budget" class="on">budget</button><button data-r="inlier">inlier</button><button data-r="both">both</button><button data-r="mse">MSE only</button></div></div>
+    <div class="knob srange"><span class="lab">Attack budget ε = <span class="v" id="eps-v">5.0</span></span><input type="range" id="eps" min="0.5" max="8" step="0.5" value="5"/></div>
+    <div class="knob srange"><span class="lab">Sweep ε&#8202;max = <span class="v" id="epsmax-v">7.0</span></span><input type="range" id="epsmax" min="2" max="8" step="0.5" value="7"/></div>
+    <div class="knob srange"><span class="lab">Segment band [<span class="v" id="qlo-v">0.80</span>, <span class="v" id="qhi-v">1.00</span>]</span>
+      <input type="range" id="qlo" min="0" max="0.9" step="0.05" value="0.8"/><input type="range" id="qhi" min="0.1" max="1" step="0.05" value="1"/></div>
+    <div class="spin" id="spin"><span class="ring"></span><span id="spin-txt">idle</span></div>
+  </div>
+
+  <div class="grid">
+    <div class="card hero-card"><h3>How the regression changes — clean vs poisoned (the key view)</h3>
+      <div class="sub">left: the regression line along a chosen feature, clean vs poisoned; right: predicted-vs-actual overlay with the targeted segment's mean shift. Uses regime, budget ε, method and feature below.</div>
+      <div class="mrow" id="m-regression"></div>
+      <div class="mrow"><span class="mlab">feature:</span><select id="rfeat" style="min-width:170px;padding:5px 9px;font-size:12px"></select></div>
+      <div class="figwrap" id="fw-regression"><div class="load"><div class="ring"></div><span>running solver…</span></div><img id="img-regression"/></div></div>
+
+    <div class="card"><h3>Force balance @ the optimum (this dataset)</h3>
+      <div class="sub">the converged mechanism in the (ℓ_F, ⊥) plane: black δ = the real final attack; blue drive ℓ_F+Mδ is cancelled by the wall reactions (green inlier / grey budget / rose MSE); green-dashed = uncapped. Uses regime &amp; ε.</div>
+      <div class="figwrap" id="fw-attackvec"><div class="load"><div class="ring"></div><span>running solver…</span></div><img id="img-attackvec"/></div></div>
+    <div class="card"><h3>Reachable ΔF vs budget — <code>functional_budget_sweep</code></h3>
+      <div class="sub">all methods vs ε (range = sweep ε&#8202;max), analytic budget markers. Uses the regime.</div>
+      <div class="figwrap" id="fw-sweep"><div class="load"><div class="ring"></div><span>running solver…</span></div><img id="img-sweep"/></div>
+      <div class="summary" id="summary"></div></div>
+
+    <div class="card"><h3>m–ε sweep — <code>m_eps_sweep</code></h3>
+      <div class="sub">ΔF vs ε for several m; choose the method &amp; regime below. Curves nest when the attack does not backfire.</div>
+      <div class="mrow" id="m-meps"></div>
+      <div class="figwrap" id="fw-meps"><div class="load"><div class="ring"></div><span>running solver…</span></div><img id="img-meps"/></div></div>
+
+    <div class="card"><h3>Feasible attack space — interactive (rotate me)</h3>
+      <div class="sub">shows the caps for the <b>current regime</b>: blue budget ball, orange inlier ellipsoid, green MSE quadric, and the feasible cloud. Drag to rotate.</div>
+      <div id="p-feasible" style="width:100%;height:400px"></div>
+      <div class="fcap" id="r-feasible">rotate to inspect the curvatures</div></div>
+
+    <div class="card"><h3>Approach to the ceiling — <code>ceiling_approach_3d</code></h3>
+      <div class="sub">headroom τ − d_M; ★ before → ● after at budget ε.</div>
+      <div class="mrow" id="m-ceiling"></div>
+      <div class="figwrap" id="fw-ceiling"><div class="load"><div class="ring"></div><span>running solver…</span></div><img id="img-ceiling"/></div></div>
+
+    <div class="card"><h3>Budget redistribution — <code>boundary_walk</code></h3>
+      <div class="sub">per-point headroom vs ε; points saturate and budget redistributes. Uses the regime.</div>
+      <div class="mrow" id="m-boundary"></div>
+      <div class="figwrap" id="fw-boundary"><div class="load"><div class="ring"></div><span>running solver…</span></div><img id="img-boundary"/></div></div>
+
+    <div class="card"><h3>Residuals move inward — <code>residual_inward</code></h3>
+      <div class="sub">(ŷ, r) plane; attacked points slide inward along the −1 antidiagonal at budget ε.</div>
+      <div class="mrow" id="m-residual"></div>
+      <div class="figwrap" id="fw-residual"><div class="load"><div class="ring"></div><span>running solver…</span></div><img id="img-residual"/></div></div>
+    <div class="card"><h3>Where is more attackable — influence × η_max headroom heatmap</h3>
+      <div class="sub">2D density of (log₁₀|influence sᵢ|, η_max travel ceiling) over inliers; the upper-right corner = high influence AND high inlier headroom = the most attackable points. Yellow stars = the top-influence points. Uses objective &amp; dataset.</div>
+      <div class="figwrap" id="fw-heatmap"><div class="load"><div class="ring"></div><span>running solver…</span></div><img id="img-heatmap"/></div></div>
+  </div>
+  <div class="foot" id="foot">Run <code>python3 server.py</code> and open the printed URL. First render of each setting runs the real solver; results are cached in <code>fig_cache/</code>.</div>
+</div>
+
+<script>
+const MS=[2,3,5,8,12,16,24];
+const KIND_LABEL={linear_topq:"top-segment shift (linear)",feature_seg:"feature-segment shift (linear)",feature_level:"feature-segment → level (curved)",level:"drive segment to a level",mse:"MSE availability"};
+const IMG_PANELS=["regression","attackvec","sweep","meps","ceiling","boundary","residual","heatmap"];
+const REGIME_IMG={regression:1,attackvec:1,sweep:1,boundary:1,meps:1};
+const EPS_IMG={regression:1,attackvec:1,ceiling:1,residual:1};
+const EPSMAX_IMG={sweep:1,meps:1,boundary:1};
+const REG_METHODS={all:["TR1","TR2","TR3","TR3-relin","bilevel"],default:["bilevel"]};
+const MEPS_METHODS={all:["TR1","TR2","TR3","TR3-relin","bilevel"],default:["TR1"]};
+const SINGLE={regression:1,meps:1};
+let CFG=null, FEAS=null;
+let state={name:null,kind:"linear_topq",m:8,regime:"budget",eps:5.0,epsmax:7.0,rfeat:"move",
+           lam:0.1,p:0.99,qlo:0.8,qhi:1.0,knob:"lam",methods:{}};
+let pending=0;
+const dd=document.getElementById("dataset"),od=document.getElementById("objective"),md=document.getElementById("mval");
+
+fetch("/api/datasets").then(r=>r.json()).then(cfg=>{
+  CFG=cfg; CFG.methods.regression=REG_METHODS; CFG.methods.meps=MEPS_METHODS;
+  cfg.datasets.forEach(n=>{const o=document.createElement("option");o.value=n;o.textContent=n;dd.appendChild(o);});
+  cfg.kinds.forEach(k=>{const o=document.createElement("option");o.value=k;o.textContent=KIND_LABEL[k]||k;od.appendChild(o);});
+  MS.forEach(m=>{const o=document.createElement("option");o.value=m;o.textContent=m;md.appendChild(o);});
+  state.name=cfg.datasets[0]; dd.value=state.name; od.value=state.kind; md.value=state.m;
+  ["regression","meps","ceiling","boundary","residual"].forEach(p=>{state.methods[p]=CFG.methods[p].default.slice();buildMethodRow(p,!!SINGLE[p]);});
+  loadAll(); loadSummary(); fetchFeasible();
+}).catch(e=>{document.getElementById("foot").innerHTML="Could not reach the server. Start it with <code>python3 server.py</code>, then reload.";});
+
+function buildMethodRow(panel,single){const c=document.getElementById("m-"+panel);if(!c)return;c.innerHTML="";
+  const lab=document.createElement("span");lab.className="mlab";lab.textContent="methods:";c.appendChild(lab);
+  CFG.methods[panel].all.forEach(m=>{const b=document.createElement("button");b.textContent=m;
+    b.className=state.methods[panel].includes(m)?"on":"";
+    b.onclick=()=>{let arr=state.methods[panel];
+      if(single){state.methods[panel]=[m];c.querySelectorAll("button").forEach(x=>x.classList.remove("on"));b.classList.add("on");}
+      else{const i=arr.indexOf(m);if(i>=0){if(arr.length>1)arr.splice(i,1);}else arr.push(m);b.className=arr.includes(m)?"on":"";}
+      loadPanel(panel);};
+    c.appendChild(b);});}
+
+function common(){return `&lam=${state.lam}&p=${state.p}&q=${state.qlo}&q_hi=${state.qhi}`;}
+function url(panel){let u=`/api/fig?panel=${panel}&name=${encodeURIComponent(state.name)}&kind=${state.kind}&m=${state.m}&regime=${state.regime}&eps=${state.eps}&eps_max=${state.epsmax}&v=4`+common();
+  if(state.methods[panel])u+=`&methods=${encodeURIComponent(state.methods[panel].join(","))}`;
+  if(panel==="regression")u+=`&feat=${encodeURIComponent(state.rfeat)}`;return u;}
+function setSpin(){document.getElementById("spin").classList.toggle("busy",pending>0);document.getElementById("spin-txt").textContent=pending>0?`rendering ${pending}…`:"ready";}
+function loadPanel(panel){const fw=document.getElementById("fw-"+panel),img=document.getElementById("img-"+panel);
+  fw.classList.remove("ready","err");fw.querySelector(".load span").textContent="running solver…";pending++;setSpin();
+  const done=()=>{pending=Math.max(0,pending-1);setSpin();};
+  img.onload=()=>{fw.classList.add("ready");done();};
+  img.onerror=()=>{fw.classList.add("err");fw.querySelector(".load span").textContent="solver error — see server console";done();};
+  const nu=url(panel); if(img.getAttribute("src")===nu){fw.classList.add("ready");pending=Math.max(0,pending-1);setSpin();return;} img.src=nu;}
+function loadAll(){IMG_PANELS.forEach(loadPanel);}
+function loadSet(set){IMG_PANELS.filter(p=>set[p]).forEach(loadPanel);}
+
+/* ---------- interactive feasible set (Plotly, client-side) ---------- */
+function chol3(Q){const L=[[0,0,0],[0,0,0],[0,0,0]];for(let i=0;i<3;i++)for(let j=0;j<=i;j++){let s=Q[i][j];for(let k=0;k<j;k++)s-=L[i][k]*L[j][k];L[i][j]=i===j?Math.sqrt(Math.max(s,1e-12)):s/L[j][j];}return L;}
+function fwd(L,b){const x=[0,0,0];for(let i=0;i<3;i++){let s=b[i];for(let k=0;k<i;k++)s-=L[i][k]*x[k];x[i]=s/L[i][i];}return x;}
+function bwdT(L,b){const x=[0,0,0];for(let i=2;i>=0;i--){let s=b[i];for(let k=i+1;k<3;k++)s-=L[k][i]*x[k];x[i]=s/L[i][i];}return x;}
+function ellipsoidWire(Q,l,ci,thr,color){const L=chol3(Q),vc=bwdT(L,fwd(L,l.map(v=>-0.5*v)));
+  const rhs=thr-ci-0.5*(l[0]*vc[0]+l[1]*vc[1]+l[2]*vc[2]);if(rhs<=0)return null;const s=Math.sqrt(rhs),X=[],Y=[],Z=[],nu=15,nv=24;
+  const pt=(th,ph)=>{const w=bwdT(L,[s*Math.sin(th)*Math.cos(ph),s*Math.sin(th)*Math.sin(ph),s*Math.cos(th)]);return[vc[0]+w[0],vc[1]+w[1],vc[2]+w[2]];};
+  for(let i=1;i<nu;i++){const th=Math.PI*i/nu;for(let j=0;j<=nv;j++){const p=pt(th,2*Math.PI*j/nv);X.push(p[0]);Y.push(p[1]);Z.push(p[2]);}X.push(NaN);Y.push(NaN);Z.push(NaN);}
+  for(let j=0;j<nv;j++){const ph=2*Math.PI*j/nv;for(let i=0;i<=nu;i++){const p=pt(Math.PI*i/nu,ph);X.push(p[0]);Y.push(p[1]);Z.push(p[2]);}X.push(NaN);Y.push(NaN);Z.push(NaN);}
+  return{type:"scatter3d",mode:"lines",x:X,y:Y,z:Z,line:{color,width:2.6},opacity:.75,name:"inlier ellipsoid",hoverinfo:"skip"};}
+function sphereSurface(rad,color,op){const N=16,x=[],y=[],z=[];for(let i=0;i<=N;i++){const th=Math.PI*i/N,rx=[],ry=[],rz=[];for(let j=0;j<=N;j++){const ph=2*Math.PI*j/N;rx.push(rad*Math.sin(th)*Math.cos(ph));ry.push(rad*Math.sin(th)*Math.sin(ph));rz.push(rad*Math.cos(th));}x.push(rx);y.push(ry);z.push(rz);}
+  return{type:"surface",x,y,z,opacity:op,showscale:false,colorscale:[[0,color],[1,color]],hoverinfo:"skip",name:"budget ball"};}
+function grid3(gn,ext){const g=[];for(let k=0;k<gn;k++)g.push(-ext+2*ext*k/(gn-1));const x=[],y=[],z=[];for(const a of g)for(const b of g)for(const c of g){x.push(a);y.push(b);z.push(c);}return{x,y,z};}
+function quadVal(Q,l,X,Y,Z){const N=X.length,v=new Array(N);for(let i=0;i<N;i++){const a=X[i],b=Y[i],c=Z[i];v[i]=Q[0][0]*a*a+Q[1][1]*b*b+Q[2][2]*c*c+2*(Q[0][1]*a*b+Q[0][2]*a*c+Q[1][2]*b*c)+l[0]*a+l[1]*b+l[2]*c;}return v;}
+function cloud3(pts,color,size,op,name){return{type:"scatter3d",mode:"markers",x:pts.map(p=>p[0]),y:pts.map(p=>p[1]),z:pts.map(p=>p[2]),marker:{size,color,opacity:op},name,hoverinfo:"skip"};}
+function fetchFeasible(){FEAS=null;document.getElementById("r-feasible").innerHTML="loading feasible set…";
+  fetch(`/api/feasible?name=${encodeURIComponent(state.name)}&kind=${state.kind}&m=${state.m}`+common()).then(r=>r.json()).then(F=>{FEAS=F;renderFeasible();populateFeat(F.d);})
+    .catch(e=>{document.getElementById("r-feasible").innerHTML="feasible set unavailable";});}
+function populateFeat(d){const s=document.getElementById("rfeat");const cur=state.rfeat;s.innerHTML="";
+  const add=(v,t)=>{const o=document.createElement("option");o.value=v;o.textContent=t;s.appendChild(o);};
+  add("move","most moved (Δθ)"); add("influence","most influential (|θ|)");
+  for(let j=0;j<d;j++)add(String(j),`feature ${j}`);
+  s.value=(cur==="move"||cur==="influence"||(+cur<d))?cur:"move"; state.rfeat=s.value;}
+document.getElementById("rfeat").onchange=e=>{state.rfeat=e.target.value;loadPanel("regression");};
+function renderFeasible(){if(!FEAS)return;const F=FEAS,rg=state.regime,ext=1.35,G=grid3(26,ext),T=[];
+  const showInl=(rg==="inlier"||rg==="both"),showMse=(rg==="both"||rg==="mse");
+  // budget-ball BOUNDARY always faintly visible (so the inlier ellipsoid is clearly a smaller subset)
+  const ball=ellipsoidWire([[1,0,0],[0,1,0],[0,0,1]],[0,0,0],0,1,"#6f7a97");
+  if(ball){ball.line.width=1.9;ball.opacity=rg==="budget"?0.7:0.55;ball.name="budget ball";T.push(ball);}
+  if(rg!=="budget")T.push(sphereSurface(1.0,"#9fb6d6",0.06));
+  if(rg==="budget")T.push(cloud3(F.cloud_ball,"#8fa9c9",2.2,.55,"feasible (budget)"));
+  if(showInl){const w=ellipsoidWire(F.Qi,F.li,F.ci,F.tau2,"#d9a24a");if(w)T.push(w);}
+  if(showMse){const mv=quadVal(F.Qm,F.lm,G.x,G.y,G.z);
+    T.push({type:"isosurface",x:G.x,y:G.y,z:G.z,value:mv,isomin:0,isomax:0,surface:{count:1,fill:1},caps:{x:{show:false},y:{show:false},z:{show:false}},colorscale:[[0,"#3f9c68"],[1,"#3f9c68"]],showscale:false,opacity:.45,name:"MSE quadric",flatshading:true,lighting:{ambient:.8,diffuse:.5}});}
+  const cl=rg==="inlier"?[F.cloud_inlier,"#2e6fb0"]:rg==="mse"?[F.cloud_mse,"#2e8b57"]:rg==="both"?[F.cloud_both,"#8452a8"]:null;
+  if(cl)T.push(cloud3(cl[0],cl[1],2.5,.6,"feasible cloud"));
+  const ax={gridcolor:"#e9e2d4",showbackground:true,backgroundcolor:"rgba(250,247,240,.7)",range:[-ext,ext]};
+  Plotly.react("p-feasible",T,{margin:{l:0,r:0,t:0,b:0},showlegend:true,legend:{x:.01,y:.99,font:{size:10}},
+    font:{family:'"Nunito Sans",sans-serif',size:11,color:"#5a544a"},paper_bgcolor:"rgba(0,0,0,0)",
+    scene:{xaxis:Object.assign({title:"influence e"},ax),yaxis:Object.assign({title:"MSE-normal"},ax),zaxis:Object.assign({title:"inlier-normal"},ax),camera:{eye:{x:1.55,y:1.4,z:1.05}},aspectmode:"cube"}},
+    {displayModeBar:false,responsive:true});
+  const ki=(100*F.kept_inlier).toFixed(1),km=(100*F.kept_mse).toFixed(1),kt=(100*F.kept_both).toFixed(1);
+  let m;
+  if(rg==="budget")m=`<b>Budget ball</b> — every direction allowed.`;
+  else if(rg==="inlier")m=`<b>Inlier ellipsoid</b> (orange) keeps <b>${ki}%</b> of the ball. The ellipsoid's tilt is the inlier curvature Σ⁻¹.`;
+  else if(rg==="mse")m=`<b>MSE quadric</b> (green) keeps <b>${km}%</b>. Its curvature is M_R = B_R + H_map,R.`;
+  else m=`<b>Both caps</b> intersect to <b>${kt}%</b> — orange inlier ellipsoid ∩ green MSE quadric.`;
+  document.getElementById("r-feasible").innerHTML=m;}
+
+/* ---------- summary ---------- */
+function loadSummary(){const box=document.getElementById("summary");box.innerHTML=`<div class="cap">computing max-reachable / saturation…</div>`;
+  fetch(`/api/summary?name=${encodeURIComponent(state.name)}&kind=${state.kind}&m=${state.m}&regime=${state.regime}&eps_max=${state.epsmax}`+common())
+    .then(r=>r.json()).then(s=>{
+      const order=["TR1","TR2","TR3","TR3-relin","bilevel","bilevel@rand","bilevel(weak)"];
+      const keys=Object.keys(s.methods).sort((a,b)=>(order.indexOf(a)+99*!order.includes(a))-(order.indexOf(b)+99*!order.includes(b)));
+      let best=-1e18,bestk=null;keys.forEach(k=>{if(s.methods[k].max>best){best=s.methods[k].max;bestk=k;}});
+      const rows=keys.map(k=>{const r=s.methods[k];return `<tr class="${k===bestk?'best':''}"><td>${k}</td><td>${r.max.toFixed(3)}</td><td>${r.eps_sat.toFixed(1)}</td><td>${r.end.toFixed(3)}</td></tr>`;}).join("");
+      box.innerHTML=`<table><thead><tr><th>method</th><th>max ΔF (saturation)</th><th>ε_sat</th><th>ΔF at ε_max</th></tr></thead><tbody>${rows}</tbody></table>`+
+        `<div class="cap">Empirical <b>maximum achievable</b> ΔF over the sweep in the <b>${s.regime}</b> regime (m=${s.m}). ε_sat = smallest ε within 1% of that plateau. Best highlighted.</div>`;
+    }).catch(e=>{box.innerHTML=`<div class="cap">summary unavailable</div>`;});}
+
+dd.onchange=()=>{state.name=dd.value;loadAll();loadSummary();fetchFeasible();};
+od.onchange=()=>{state.kind=od.value;loadAll();loadSummary();fetchFeasible();};
+md.onchange=()=>{state.m=+md.value;IMG_PANELS.filter(p=>p!=="meps").forEach(loadPanel);loadSummary();fetchFeasible();};
+document.querySelectorAll("#regime button").forEach(b=>b.onclick=()=>{
+  document.querySelectorAll("#regime button").forEach(x=>x.classList.remove("on"));b.classList.add("on");
+  state.regime=b.dataset.r;loadSet(REGIME_IMG);loadSummary();renderFeasible();});
+const epsEl=document.getElementById("eps"),epsmaxEl=document.getElementById("epsmax");
+epsEl.oninput=()=>{state.eps=+epsEl.value;document.getElementById("eps-v").textContent=state.eps.toFixed(1);};
+epsEl.onchange=()=>{loadSet(EPS_IMG);};
+epsmaxEl.oninput=()=>{state.epsmax=+epsmaxEl.value;document.getElementById("epsmax-v").textContent=state.epsmax.toFixed(1);};
+epsmaxEl.onchange=()=>{loadSet(EPSMAX_IMG);loadSummary();};
+// segment band + defender knobs (λ, τ_x) change the target/caps -> everything reloads
+const qloEl=document.getElementById("qlo"),qhiEl=document.getElementById("qhi");
+function bandInput(){let lo=+qloEl.value,hi=+qhiEl.value;if(lo>=hi){if(this===qloEl)hi=Math.min(1,lo+0.05);else lo=Math.max(0,hi-0.05);qloEl.value=lo;qhiEl.value=hi;}
+  state.qlo=lo;state.qhi=hi;document.getElementById("qlo-v").textContent=lo.toFixed(2);document.getElementById("qhi-v").textContent=hi.toFixed(2);}
+function reloadEverything(){loadAll();loadSummary();fetchFeasible();}
+qloEl.oninput=bandInput;qhiEl.oninput=bandInput;qloEl.onchange=reloadEverything;qhiEl.onchange=reloadEverything;
+// defender knobs removed from the UI; λ and τ_x stay at their defaults (state.lam=0.1, state.p=0.99)
+// and are still sent with every request, so the panels render with fixed defender settings.
+</script>
+</body>
+</html>
